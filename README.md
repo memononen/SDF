@@ -3,7 +3,7 @@ SDF
 
 Sweep-and-update Euclidean distance transform of an antialised image for contour texturing.
 
-The code is based on [http://contourtextures.wikidot.com/](edtaa3func.c) by Stefan Gustavson and improves the original in terms of memory usage and execution time.
+The code is based on [edtaa3func.c](http://contourtextures.wikidot.com/) by Stefan Gustavson and improves the original in terms of memory usage and execution time.
 
 The algorithms first traverse the image and uses gradient direction and the edge function from edtaa3 to find an approximated point on the contour of the input image. After this pass the distance at the edge pixels are known, and the code proceeds to update the rest of the distance field using sweep-and-update until the distance feild convergences (or max passes run).
 
@@ -12,7 +12,7 @@ done using squared distances and contour points calculated only in the first pas
 
 The code procudes comparable, but probably not as accurate distance fields as the original code.
 
-The code is intended to be used to calculate distance fields for [http://contourtextures.wikidot.com/](contour texturing).
+The code is intended to be used to calculate distance fields for [contour texturing](http://contourtextures.wikidot.com/).
 
 **Usage
 ```C
