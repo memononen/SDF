@@ -14,19 +14,19 @@ The code procudes comparable, but probably not as accurate distance fields as th
 
 The code is intended to be used to calculate distance fields for [contour texturing](http://contourtextures.wikidot.com/).
 
-**Usage
+## Usage
 ```C
 int sdfBuild(unsigned char* out, int outstride, float maxdist,
 			 const unsigned char* img, int width, int height, int stride);
 ```
 The output distance field is encoded as bytes, where 0 = maxdist (outside) and 255 = -maxdist (inside). Input and output can be the same buffer.
-* /out/ - Output of the distance transform, one byte per pixel.
-* /outstride/ - Bytes per row on output image. 
-* /maxdist/ - The extents of the output distance range in pixels.
-* /img/ - Input image, one byte per pixel.
-* /width/ - Width if the image. 
-* /height/ - Height if the image. 
-* /stride/ - Bytes per row on input image. 
+* _out_ - Output of the distance transform, one byte per pixel.
+* _outstride_ - Bytes per row on output image. 
+* _maxdist_ - The extents of the output distance range in pixels.
+* _img_ - Input image, one byte per pixel.
+* _width_ - Width if the image. 
+* _height_ - Height if the image. 
+* _stride_ - Bytes per row on input image. 
 
 White (255) pixels are treated as object pixels, zero pixels are treated as background. An attempt is made to treat antialiased edges correctly. The input image must have pixels in the range [0,255], and the antialiased image should be a box-filter sampling of the ideal, crisp edge. If the antialias region is more than 1 pixel wide, the result from this transform will be inaccurate. Pixels at image border are not calculated and are set to 0.
 (Explanation borrowed from the original eedtaa3func.c)
@@ -37,13 +37,13 @@ void sdfBuildNoAlloc(unsigned char* out, int outstride, float maxdist,
 					 unsigned char* temp);
 ```
 
+Same as distXform, but does not allocate any memory. The `temp` array should be enough to fit `width * height * sizeof(float)` bytes.
+
 The code is single header file only. Use following code once in your project to compile the implementation.
 ```C
 #define SDF_IMPLEMENTATION
 #include "sdf.h"
 ```
 
-Same as distXform, but does not allocate any memory. The 'temp' array should be enough to fit width * height * sizeof(float) bytes.
-
-**License
+## License
 MIT License
