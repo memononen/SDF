@@ -133,7 +133,6 @@ void sdfCoverageToDistance(unsigned char* out, int outstride, float maxdist,
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
 			int k = x + y * stride;
-			struct SDFpoint c = { (float)x, (float)y }, pt;
 			float d, gx, gy, glen;
 			// Calculate gradient direction
 			gx = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-1] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+1] + (float)img[k+stride+1];
@@ -145,9 +144,7 @@ void sdfCoverageToDistance(unsigned char* out, int outstride, float maxdist,
 				gy *= glen;
 				// Find nearest point on contour.
 				d = sdf__edgedf(gx, gy, (float)img[k]/255.0f);
-				pt.x = x + gx*d;
-				pt.y = y + gy*d;
-				d = sqrtf(sdf__distsqr(&c, &pt)) * scale;
+				d = fabsf(d);
 				if (img[x+y*stride] > 127) d = -d;
 				out[x+y*outstride] = (unsigned char)(sdf__clamp01(0.5f - d*0.5f) * 255.0f);
 			} else {
@@ -183,8 +180,6 @@ void sdfBuildNoAlloc(unsigned char* out, int outstride, float maxdist,
 				// Calculate gradient direction
 				gx = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-1] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+1] + (float)img[k+stride+1];
 				gy = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-stride] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+stride] + (float)img[k+stride+1];
-//				gx = -SDF_SQRT2*(float)img[k-1] + SDF_SQRT2*(float)img[k+1];
-//				gy = -SDF_SQRT2*(float)img[k-stride] + SDF_SQRT2*(float)img[k+stride];
 				if (fabsf(gx) < 0.001f && fabsf(gy) < 0.001f) continue;
 				glen = gx*gx + gy*gy;
 				if (glen > 0.0001f) {
@@ -316,7 +311,6 @@ void sdfBuildNoAlloc(unsigned char* out, int outstride, float maxdist,
 	}
 
 	// Map to good range.
-//	scale = 1.0f / 3.0f; //maxdist;
 	scale = 1.0f / maxdist;
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
