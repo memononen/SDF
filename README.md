@@ -1,7 +1,7 @@
-SDF - Build Signed Distance Field from Antialiased Image
-========================================================
+SDF - Signed Distance Field Builder for Contour Texturing
+=========================================================
 
-Sweep-and-update Euclidean distance transform of an antialised image for contour textures.
+Sweep-and-update Euclidean distance transform of an antialised image for contour texturing.
 
 The code is based on [http://contourtextures.wikidot.com/](edtaa3func.c) by Stefan Gustavson and improves the original in terms of memory usage and execution time.
 
@@ -35,6 +35,12 @@ White (255) pixels are treated as object pixels, zero pixels are treated as back
 void sdfBuildNoAlloc(unsigned char* out, int outstride, float maxdist,
 					 const unsigned char* img, int width, int height, int stride,
 					 unsigned char* temp);
+```
+
+The code is single header file only. Use following code once in your project to compile the implementation.
+```C
+#define SDF_IMPLEMENTATION
+#include "sdf.h"
 ```
 
 Same as distXform, but does not allocate any memory. The 'temp' array should be enough to fit width * height * sizeof(float) bytes.
