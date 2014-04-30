@@ -1,5 +1,5 @@
-SDF - Signed Distance Field Builder for Contour Texturing
-=========================================================
+SDF
+===
 
 Sweep-and-update Euclidean distance transform of an antialised image for contour texturing.
 
