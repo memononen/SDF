@@ -7,14 +7,26 @@
 #include "stb_image.c"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#include <sys/time.h>
+#include <stdint.h>
+
+int64_t getPerfTime()
+{
+	struct timeval now;
+	gettimeofday(&now, 0);
+	return (int64_t)now.tv_sec*1000000L + (int64_t)now.tv_usec;
+}
+
+int deltaTimeUsec(int64_t start, int64_t end)
+{
+	return (int)(end - start);
+}
 
 static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 }
-
-
 
 struct Image {
 	unsigned char* data;
@@ -106,6 +118,7 @@ int main()
 	double time;
 	struct Image* img = NULL;
 	struct Image* img2 = NULL;
+	int64_t t0, t1;
 	GLuint tex, tex2;
 
 	// Load example image
@@ -122,10 +135,15 @@ int main()
 		return -1;
 	}
 
+	t0 = getPerfTime();
+
 	sdfBuild(img2->data, img2->width, 2.0f, img->data, img->width, img->height, img->width);
+
+	t1 = getPerfTime();
 
 	imgSave(img2, "dist.png");
 
+	printf("sdfBuild(%dx%d) %.1fms\n", img->width, img->height, deltaTimeUsec(t0, t1) / 1000.0f);
 
 	if (!glfwInit())
 		return -1;
