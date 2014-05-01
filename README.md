@@ -27,6 +27,7 @@ The output distance field is encoded as bytes, where 0 = radius (outside) and 25
 * _width_ - Width if the image. 
 * _height_ - Height if the image. 
 * _stride_ - Bytes per row on input image.
+
 White (255) pixels are treated as object pixels, zero pixels are treated as background. An attempt is made to treat antialiased edges correctly. The input image must have pixels in the range [0,255], and the antialiased image should be a box-filter sampling of the ideal, crisp edge. If the antialias region is more than 1 pixel wide, the result from this transform will be inaccurate. Pixels at image border are not calculated and are set to 0.
 (Explanation borrowed from the original eedtaa3func.c)
 
@@ -49,7 +50,8 @@ The output distance field is encoded as bytes, where 0 = sqrt(2) (outside) and 2
 * _width_ - Width if the image. 
 * _height_ - Height if the image. 
 * _stride_ - Bytes per row on input image.
-This function converts the antialiased image where each pixel represents coverage (box-filter sampling of the ideal, crisp edge) to a distance field with narrow band radius of sqrt(2). This is the fastest way to turn antialised image to contour texture. If function is good if you don't need the distance field for effects (i.e. fat outline or dropshadow).
+
+This function converts the antialiased image where each pixel represents coverage (box-filter sampling of the ideal, crisp edge) to a distance field with narrow band radius of sqrt(2). This is the fastest way (often up to 10x faster than `sdfBuildDistanceField`) to turn antialised image to contour texture. If function is good if you don't need the distance field for effects (i.e. fat outline or dropshadow).
 
 The code is single header file only. Use following code once in your project to compile the implementation.
 ```C
