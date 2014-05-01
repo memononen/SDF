@@ -16,28 +16,40 @@ The code is intended to be used to calculate distance fields for [contour textur
 
 ## Usage
 ```C
-int sdfBuild(unsigned char* out, int outstride, float maxdist,
-			 const unsigned char* img, int width, int height, int stride);
+int sdfBuildDistanceField(unsigned char* out, int outstride, float radius,
+						  const unsigned char* img, int width, int height, int stride);
 ```
-The output distance field is encoded as bytes, where 0 = maxdist (outside) and 255 = -maxdist (inside). Input and output can be the same buffer.
+The output distance field is encoded as bytes, where 0 = radius (outside) and 255 = -radius (inside). Input and output can be the same buffer.
 * _out_ - Output of the distance transform, one byte per pixel.
 * _outstride_ - Bytes per row on output image. 
-* _maxdist_ - The extents of the output distance range in pixels.
+* _radius_ - The radius of the distance field narrow band in pixels.
 * _img_ - Input image, one byte per pixel.
 * _width_ - Width if the image. 
 * _height_ - Height if the image. 
-* _stride_ - Bytes per row on input image. 
-
+* _stride_ - Bytes per row on input image.
 White (255) pixels are treated as object pixels, zero pixels are treated as background. An attempt is made to treat antialiased edges correctly. The input image must have pixels in the range [0,255], and the antialiased image should be a box-filter sampling of the ideal, crisp edge. If the antialias region is more than 1 pixel wide, the result from this transform will be inaccurate. Pixels at image border are not calculated and are set to 0.
 (Explanation borrowed from the original eedtaa3func.c)
 
 ```C
-void sdfBuildNoAlloc(unsigned char* out, int outstride, float maxdist,
-					 const unsigned char* img, int width, int height, int stride,
-					 unsigned char* temp);
+void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radius,
+								  const unsigned char* img, int width, int height, int stride,
+								  unsigned char* temp);
 ```
-
 Same as distXform, but does not allocate any memory. The `temp` array should be enough to fit `width * height * sizeof(float)` bytes.
+
+```C
+void sdfCoverageToDistanceField(unsigned char* out, int outstride,
+								const unsigned char* img, int width, int height, int stride);
+```
+The output distance field is encoded as bytes, where 0 = sqrt(2) (outside) and 255 = -sqrt(2) (inside). Input and output must be different buffers.
+* _out_ - Output of the distance transform, one byte per pixel.
+* _outstride_ - Bytes per row on output image. 
+* _radius_ - The radius of the distance field narrow band in pixels.
+* _img_ - Input image, one byte per pixel.
+* _width_ - Width if the image. 
+* _height_ - Height if the image. 
+* _stride_ - Bytes per row on input image.
+This function converts the antialiased image where each pixel represents coverage (box-filter sampling of the ideal, crisp edge) to a distance field with narrow band radius of sqrt(2). This is the fastest way to turn antialised image to contour texture. If function is good if you don't need the distance field for effects (i.e. fat outline or dropshadow).
 
 The code is single header file only. Use following code once in your project to compile the implementation.
 ```C

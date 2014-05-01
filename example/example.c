@@ -138,8 +138,8 @@ int main()
 	t0 = getPerfTime();
 
 
-//	sdfBuild(img2->data, img2->width, 2.0f, img->data, img->width, img->height, img->width);
-	sdfCoverageToDistance(img2->data, img2->width, 2.0f, img->data, img->width, img->height, img->width);
+//	sdfBuildDistanceField(img2->data, img2->width, 2.0f, img->data, img->width, img->height, img->width);
+	sdfCoverageToDistanceField(img2->data, img2->width, img->data, img->width, img->height, img->width);
 
 	t1 = getPerfTime();
 
