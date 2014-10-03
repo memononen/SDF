@@ -194,7 +194,7 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 	// Calculate position of the anti-aliased pixels and distance to the boundary of the shape.
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
-			int k = x + y * stride;
+			int tk, k = x + y * stride;
 			if (img[k] > 0 && img[k] < 255) {
 				struct SDFpoint c = { (float)x, (float)y };
 				float d, gx, gy, glen;
@@ -209,10 +209,11 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 					gy *= glen;
 				}
 				// Find nearest point on contour.
+				tk = x + y * width;
 				d = sdf__edgedf(gx, gy, (float)img[k]/255.0f);
-				tpt[k].x = x + gx*d;
-				tpt[k].y = y + gy*d;
-				tdist[k] = sdf__distsqr(&c, &tpt[k]);
+				tpt[tk].x = x + gx*d;
+				tpt[tk].y = y + gy*d;
+				tdist[tk] = sdf__distsqr(&c, &tpt[tk]);
 			}
 		}
 	}
@@ -346,7 +347,7 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 int sdfBuildDistanceField(unsigned char* out, int outstride, float radius,
 						  const unsigned char* img, int width, int height, int stride)
 {
-	unsigned char* temp = malloc(width*height*sizeof(float)*3);
+	unsigned char* temp = (unsigned char*)malloc(width*height*sizeof(float)*3);
 	if (temp == NULL) return 0;
 	sdfBuildDistanceFieldNoAlloc(out, outstride, radius, img, width, height, stride, temp);
 	free(temp);
