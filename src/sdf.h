@@ -47,14 +47,14 @@ int sdfBuildDistanceField(unsigned char* out, int outstride, float radius,
 						  const unsigned char* img, int width, int height, int stride);
 
 // Same as distXform, but does not allocate any memory.
-// The 'temp' array should be enough to fit width * height * sizeof(float) bytes.
+// The 'temp' array should be enough to fit width * height * sizeof(float) * 3 bytes.
 void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radius,
 								  const unsigned char* img, int width, int height, int stride,
 								  unsigned char* temp);
 
 // This function converts the antialiased image where each pixel represents coverage (box-filter
 // sampling of the ideal, crisp edge) to a distance field with narrow band radius of sqrt(2).
-// This is the fastest way to turn antialised image to contour texture. If function is good
+// This is the fastest way to turn antialised image to contour texture. This function is good
 // if you don't need the distance field for effects (i.e. fat outline or dropshadow).
 // Input and output buffers must be different.
 //   out - Output of the distance transform, one byte per pixel.
