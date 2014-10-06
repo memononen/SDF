@@ -93,11 +93,11 @@ void sdfCoverageToDistanceField(unsigned char* out, int outstride,
 	for (x = 0; x < width; x++)
 		out[x] = 0;
 	for (y = 1; y < height; y++) {
-		out[y*stride] = 0;
-		out[width-1+y*stride] = 0;
+		out[y*outstride] = 0;
+		out[width-1+y*outstride] = 0;
 	}
 	for (x = 0; x < width; x++)
-		out[x+(height-1)*stride] = 0;
+		out[x+(height-1)*outstride] = 0;
 
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
