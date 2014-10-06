@@ -195,7 +195,13 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
 			int tk, k = x + y * stride;
-			if (img[k] > 0 && img[k] < 255) {
+
+			// Fix to https://github.com/memononen/SDF/issues/2
+			if (img[k] == 255) {
+				if ((img[k-1] != 0) && (img[k+1] != 0) && (img[k-stride] != 0) && (img[k+stride] != 0)) continue;
+			}
+
+			if (img[k] > 0) {
 				struct SDFpoint c = { (float)x, (float)y };
 				float d, gx, gy, glen;
 				// Calculate gradient direction
