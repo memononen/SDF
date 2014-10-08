@@ -22,11 +22,18 @@ int deltaTimeUsec(int64_t start, int64_t end)
 	return (int)(end - start);
 }
 
-static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GL_TRUE);
-}
+GLuint tex = 0;
+GLuint tex2 = 0;
+float imageAspect = 1.0f;
+
+int alphaTest = 1;
+float scale = 1.0f;
+float radius = 2.0f;
+float x = 0.0f;
+float y = 0.0f;
+
+const char* imageFilename = "../example/test.png";
+//const char* imageFilename = "../example/flipper128.png";
 
 struct Image {
 	unsigned char* data;
@@ -111,41 +118,96 @@ GLuint imgTexture(struct Image* img)
 	return tex;	
 }
 
-int main()
+int loadImage(const char* imageFile, float radius, float* imageAspect, GLuint* tex, GLuint* texSDF)
 {
-	GLFWwindow* window;
-	const GLFWvidmode* mode;
-	double time;
+	int64_t t0, t1;
 	struct Image* img = NULL;
 	struct Image* img2 = NULL;
-	int64_t t0, t1;
-	GLuint tex, tex2;
 
 	// Load example image
-	img = imgLoad("../example/flipper128.png", 1);
+	img = imgLoad(imageFile, 1);
 	if (img == NULL) {
 		printf("Could not load image.\n");
-		return -1;
+		return 0;
 	}
 	imgInverse(img);
+
+	*imageAspect = img->height / (float) img->width;
 
 	// Build distance field and save it
 	img2 = imgCreate(img->width, img->height, 1);
 	if (img2 == NULL) {
-		return -1;
+		return 0;
 	}
 
 	t0 = getPerfTime();
 
-
-//	sdfBuildDistanceField(img2->data, img2->width, 2.0f, img->data, img->width, img->height, img->width);
-	sdfCoverageToDistanceField(img2->data, img2->width, img->data, img->width, img->height, img->width);
+	sdfBuildDistanceField(img2->data, img2->width, radius, img->data, img->width, img->height, img->width);
+//	sdfCoverageToDistanceField(img2->data, img2->width, img->data, img->width, img->height, img->width);
 
 	t1 = getPerfTime();
 
 	imgSave(img2, "dist.png");
 
 	printf("sdfBuild(%dx%d) %.1fms\n", img->width, img->height, deltaTimeUsec(t0, t1) / 1000.0f);
+
+	if (tex != 0) glDeleteTextures(1, tex);
+	*tex = imgTexture(img);
+
+	if (texSDF != 0) glDeleteTextures(1, texSDF);
+	*texSDF = imgTexture(img2);
+
+	imgFree(img);
+	imgFree(img2);
+
+	return 1;
+}
+
+static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GL_TRUE);
+
+	if (key == GLFW_KEY_HOME && action == GLFW_PRESS) {
+		radius += 0.5f;
+		loadImage(imageFilename, radius, &imageAspect, &tex, &tex2);
+	}
+	if (key == GLFW_KEY_END && action == GLFW_PRESS) {
+		radius -= 0.5f;
+		if (radius < 0.0) radius = 0.0;
+		loadImage(imageFilename, radius, &imageAspect, &tex, &tex2);
+	}
+
+	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS) {
+		scale *= 1.1f;
+	}
+	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS) {
+		scale /= 1.1f;
+	}
+
+	if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+		x += 50.0f * scale;
+	}
+	if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+		x -= 50.0f * scale;
+	}
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+		y += 50.0f * scale;
+	}
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+		y -= 50.0f * scale;
+	}
+
+	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+		alphaTest = !alphaTest;
+	}
+}
+
+int main()
+{
+	GLFWwindow* window;
+	const GLFWvidmode* mode;
+	double time;
 
 	if (!glfwInit())
 		return -1;
@@ -160,8 +222,8 @@ int main()
 	glfwSetKeyCallback(window, key);
 	glfwMakeContextCurrent(window);
 
-	tex = imgTexture(img);
-	tex2 = imgTexture(img2);
+	if (!loadImage(imageFilename, radius, &imageAspect, &tex, &tex2))
+		return -1;
 
 	glEnable(GL_LINE_SMOOTH);
 
@@ -169,7 +231,7 @@ int main()
 
 	while (!glfwWindowShouldClose(window))
 	{
-		float o, s;
+		float o, w, h;
 		int width, height;
 		double t = glfwGetTime();
 		double dt = t - time;
@@ -196,9 +258,9 @@ int main()
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
-
-		s = height * (0.2f + (1.0f + sinf(time*0.5f))*0.5f);
-		o = s*0.5f;
+		w = (width-40) * 0.5f * scale;
+		h = w * imageAspect;
+		o = w;
 
 		// Draw orig texture using bilinear filtering.
 		glEnable(GL_TEXTURE_2D);
@@ -209,16 +271,16 @@ int main()
 		glBegin(GL_QUADS);
 
 		glTexCoord2f(0,0);
-		glVertex2f(10+o,10);
+		glVertex2f(x+o,y);
 
 		glTexCoord2f(1,0);
-		glVertex2f(10+s+o,10);
+		glVertex2f(x+w+o,y);
 
 		glTexCoord2f(1,1);
-		glVertex2f(10+s+o,10+s);
+		glVertex2f(x+w+o,y+h);
 
 		glTexCoord2f(0,1);
-		glVertex2f(10+o,10+s);
+		glVertex2f(x+o,y+h);
 
 		glEnd();
 
@@ -227,39 +289,40 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, tex2);
 		glColor4ub(255,255,255,255);
 
-		glDisable(GL_BLEND);
-		glEnable(GL_ALPHA_TEST);
-		glAlphaFunc(GL_GREATER, 0.5f);
+		if (alphaTest) {
+			glDisable(GL_BLEND);
+			glEnable(GL_ALPHA_TEST);
+			glAlphaFunc(GL_GREATER, 0.5f);
+		}
 
 		glBegin(GL_QUADS);
 
 		glTexCoord2f(0,0);
-		glVertex2f(10,10);
+		glVertex2f(x,y);
 
 		glTexCoord2f(1,0);
-		glVertex2f(10+s,10);
+		glVertex2f(x+w,y);
 
 		glTexCoord2f(1,1);
-		glVertex2f(10+s,10+s);
+		glVertex2f(x+w,y+h);
 
 		glTexCoord2f(0,1);
-		glVertex2f(10,10+s);
+		glVertex2f(x,y+h);
 
 		glEnd();
 
 		glDisable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
 
-		glDisable(GL_ALPHA_TEST);
+		if (alphaTest) {
+			glEnable(GL_BLEND);
+			glDisable(GL_ALPHA_TEST);
+		}
 
 		glEnable(GL_DEPTH_TEST);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
-	imgFree(img);
-	imgFree(img2);
 
 	glfwTerminate();
 	return 0;
