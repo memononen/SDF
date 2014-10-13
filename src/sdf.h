@@ -103,8 +103,25 @@ void sdfCoverageToDistanceField(unsigned char* out, int outstride,
 		for (x = 1; x < width-1; x++) {
 			int k = x + y * stride;
 			float d, gx, gy, glen, a, a1;
+
+			// Skip flat areas.
+			if (img[k] == 255) {
+				out[x+y*outstride] = 255;
+				continue;
+			}
+			if (img[k] == 0) {
+				// Special handling for cases where full opaque pixels are next to full transparent pixels.
+				// See: https://github.com/memononen/SDF/issues/2
+				int he = img[k-1] == 255 || img[k+1] == 255;
+				int ve = img[k-stride] == 255 || img[k+stride] == 255;
+				if (!he && !ve) {
+					out[x+y*outstride] = 0;
+					continue;
+				}
+			}
+
 			gx = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-1] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+1] + (float)img[k+stride+1];
-			gy = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-stride] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+stride] + (float)img[k+stride+1];
+			gy = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-stride] - (float)img[k-stride+1] + (float)img[k+stride-1] + SDF_SQRT2*(float)img[k+stride] + (float)img[k+stride+1];
 			a = (float)img[k]/255.0f;
 			gx = fabsf(gx);
 			gy = fabsf(gy);
@@ -195,6 +212,8 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
 			int tk, k = x + y * stride;
+			struct SDFpoint c = { (float)x, (float)y };
+			float d, gx, gy, glen;
 
 			// Skip flat areas.
 			if (img[k] == 255) continue;
@@ -206,8 +225,6 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 				if (!he && !ve) continue;
 			}
 
-			struct SDFpoint c = { (float)x, (float)y };
-			float d, gx, gy, glen;
 			// Calculate gradient direction
 			gx = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-1] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+1] + (float)img[k+stride+1];
 			gy = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-stride] - (float)img[k-stride+1] + (float)img[k+stride-1] + SDF_SQRT2*(float)img[k+stride] + (float)img[k+stride+1];
