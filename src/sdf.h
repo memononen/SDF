@@ -47,14 +47,14 @@ int sdfBuildDistanceField(unsigned char* out, int outstride, float radius,
 						  const unsigned char* img, int width, int height, int stride);
 
 // Same as distXform, but does not allocate any memory.
-// The 'temp' array should be enough to fit width * height * sizeof(float) bytes.
+// The 'temp' array should be enough to fit width * height * sizeof(float) * 3 bytes.
 void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radius,
 								  const unsigned char* img, int width, int height, int stride,
 								  unsigned char* temp);
 
 // This function converts the antialiased image where each pixel represents coverage (box-filter
 // sampling of the ideal, crisp edge) to a distance field with narrow band radius of sqrt(2).
-// This is the fastest way to turn antialised image to contour texture. If function is good
+// This is the fastest way to turn antialised image to contour texture. This function is good
 // if you don't need the distance field for effects (i.e. fat outline or dropshadow).
 // Input and output buffers must be different.
 //   out - Output of the distance transform, one byte per pixel.
@@ -93,11 +93,11 @@ void sdfCoverageToDistanceField(unsigned char* out, int outstride,
 	for (x = 0; x < width; x++)
 		out[x] = 0;
 	for (y = 1; y < height; y++) {
-		out[y*stride] = 0;
-		out[width-1+y*stride] = 0;
+		out[y*outstride] = 0;
+		out[width-1+y*outstride] = 0;
 	}
 	for (x = 0; x < width; x++)
-		out[x+(height-1)*stride] = 0;
+		out[x+(height-1)*outstride] = 0;
 
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
@@ -195,26 +195,36 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 	for (y = 1; y < height-1; y++) {
 		for (x = 1; x < width-1; x++) {
 			int tk, k = x + y * stride;
-			if (img[k] > 0 && img[k] < 255) {
-				struct SDFpoint c = { (float)x, (float)y };
-				float d, gx, gy, glen;
-				// Calculate gradient direction
-				gx = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-1] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+1] + (float)img[k+stride+1];
-				gy = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-stride] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+stride] + (float)img[k+stride+1];
-				if (fabsf(gx) < 0.001f && fabsf(gy) < 0.001f) continue;
-				glen = gx*gx + gy*gy;
-				if (glen > 0.0001f) {
-					glen = 1.0f / sqrtf(glen);
-					gx *= glen;
-					gy *= glen;
-				}
-				// Find nearest point on contour.
-				tk = x + y * width;
-				d = sdf__edgedf(gx, gy, (float)img[k]/255.0f);
-				tpt[tk].x = x + gx*d;
-				tpt[tk].y = y + gy*d;
-				tdist[tk] = sdf__distsqr(&c, &tpt[tk]);
+
+			// Skip flat areas.
+			if (img[k] == 255) continue;
+			if (img[k] == 0) {
+				// Special handling for cases where full opaque pixels are next to full transparent pixels.
+				// See: https://github.com/memononen/SDF/issues/2
+				int he = img[k-1] == 255 || img[k+1] == 255;
+				int ve = img[k-stride] == 255 || img[k+stride] == 255;
+				if (!he && !ve) continue;
 			}
+
+			struct SDFpoint c = { (float)x, (float)y };
+			float d, gx, gy, glen;
+			// Calculate gradient direction
+			gx = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-1] - (float)img[k+stride-1] + (float)img[k-stride+1] + SDF_SQRT2*(float)img[k+1] + (float)img[k+stride+1];
+			gy = -(float)img[k-stride-1] - SDF_SQRT2*(float)img[k-stride] - (float)img[k-stride+1] + (float)img[k+stride-1] + SDF_SQRT2*(float)img[k+stride] + (float)img[k+stride+1];
+			if (fabsf(gx) < 0.001f && fabsf(gy) < 0.001f) continue;
+			glen = gx*gx + gy*gy;
+			if (glen > 0.0001f) {
+				glen = 1.0f / sqrtf(glen);
+				gx *= glen;
+				gy *= glen;
+			}
+
+			// Find nearest point on contour.
+			tk = x + y * width;
+			d = sdf__edgedf(gx, gy, (float)img[k]/255.0f);
+			tpt[tk].x = x + gx*d;
+			tpt[tk].y = y + gy*d;
+			tdist[tk] = sdf__distsqr(&c, &tpt[tk]);
 		}
 	}
 
@@ -239,7 +249,7 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 					}
 				}
 				// (0,-1)
-				kn = k - 1 - width;
+				kn = k - width;
 				if (tdist[kn] < pd) {
 					d = sdf__distsqr(&c, &tpt[kn]);
 					if (d + SDF_SLACK < pd) {
@@ -329,6 +339,7 @@ void sdfBuildDistanceFieldNoAlloc(unsigned char* out, int outstride, float radiu
 				}
 			}
 		}
+
 		if (changed == 0) break;
 	}
 
