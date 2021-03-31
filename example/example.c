@@ -203,11 +203,14 @@ static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 	}
 }
 
-int main()
+int main(int argc, const char* argv[])
 {
 	GLFWwindow* window;
 	const GLFWvidmode* mode;
 	double time;
+
+	if(argc > 1)
+		imageFilename = argv[1];
 
 	if (!glfwInit())
 		return -1;
